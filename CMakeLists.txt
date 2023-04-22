@@ -3,7 +3,7 @@ project(minishell C)
 
 set(CMAKE_C_STANDARD 11)
 
-add_executable(minishell main.c parser.h comandos.h comandos.c gestorProcesos.h ListaEnlazada.h ListaEnlazada.c gestorProcesos.c)
+add_executable(minishell main.c parser.h comandos.h comandos.c procesos.h ListaEnlazada.h ListaEnlazada.c procesos.c)
 find_library(LIBPARSER parser ./)
 target_link_libraries(minishell ${LIBPARSER})
 

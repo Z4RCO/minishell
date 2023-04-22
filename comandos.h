@@ -4,7 +4,7 @@
 
 
 #include "parser.h"
-#include "gestorProcesos.h"
+#include "procesos.h"
 
 int ejecutarComando(tcommand comando);
 
