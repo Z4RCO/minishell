@@ -67,8 +67,8 @@ build CMakeFiles/minishell.dir/ListaEnlazada.c.o: C_COMPILER__minishell_Debug /h
   OBJECT_DIR = CMakeFiles/minishell.dir
   OBJECT_FILE_DIR = CMakeFiles/minishell.dir
 
-build CMakeFiles/minishell.dir/gestorProcesos.c.o: C_COMPILER__minishell_Debug /home/usuario/CLionProjects/minishell/gestorProcesos.c || cmake_object_order_depends_target_minishell
-  DEP_FILE = CMakeFiles/minishell.dir/gestorProcesos.c.o.d
+build CMakeFiles/minishell.dir/procesos.c.o: C_COMPILER__minishell_Debug /home/usuario/CLionProjects/minishell/procesos.c || cmake_object_order_depends_target_minishell
+  DEP_FILE = CMakeFiles/minishell.dir/procesos.c.o.d
   FLAGS = -Wall -Wextra -static -g -fdiagnostics-color=always -std=gnu11
   OBJECT_DIR = CMakeFiles/minishell.dir
   OBJECT_FILE_DIR = CMakeFiles/minishell.dir
@@ -81,7 +81,7 @@ build CMakeFiles/minishell.dir/gestorProcesos.c.o: C_COMPILER__minishell_Debug /
 #############################################
 # Link the executable minishell
 
-build minishell: C_EXECUTABLE_LINKER__minishell_Debug CMakeFiles/minishell.dir/main.c.o CMakeFiles/minishell.dir/comandos.c.o CMakeFiles/minishell.dir/ListaEnlazada.c.o CMakeFiles/minishell.dir/gestorProcesos.c.o | /home/usuario/CLionProjects/minishell/libparser.a
+build minishell: C_EXECUTABLE_LINKER__minishell_Debug CMakeFiles/minishell.dir/main.c.o CMakeFiles/minishell.dir/comandos.c.o CMakeFiles/minishell.dir/ListaEnlazada.c.o CMakeFiles/minishell.dir/procesos.c.o | /home/usuario/CLionProjects/minishell/libparser.a
   FLAGS = -Wall -Wextra -static -g
   LINK_LIBRARIES = /home/usuario/CLionProjects/minishell/libparser.a
   OBJECT_DIR = CMakeFiles/minishell.dir
