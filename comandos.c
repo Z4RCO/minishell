@@ -11,6 +11,7 @@ int ejecutarComando(tcommand comando){
     }
     else if(!strcmp("jobs",comando.argv[0])){
     }
+
 }
 
 int cd(char* dir){

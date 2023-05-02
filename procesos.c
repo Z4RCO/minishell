@@ -3,40 +3,39 @@
 #include <sys/wait.h>
 #include <stdio.h>
 
-Gestor* nuevoGestor(){
-    Gestor *gestor = (Gestor*)malloc(sizeof(Gestor));
+Gestor *nuevoGestor() {
+    Gestor *gestor = (Gestor *) malloc(sizeof(Gestor));
     gestor->numProcesos = 0;
-    gestor->proceso = (Proceso *)malloc(sizeof(Proceso*));
+    gestor->proceso = (Proceso *) malloc(sizeof(Proceso *));
     gestor->procesosSegundoPlano = nuevaLista();
     return gestor;
 }
 
-void borrarGestor(Gestor * gestor){
+void borrarGestor(Gestor *gestor) {
     free(gestor->proceso);
     borrarLista(gestor->procesosSegundoPlano);
+    free(gestor);
 }
 
-Proceso * ejecutarProceso(tcommand comando, int plano, int entrada, int salida, int error){
+Proceso *ejecutarProceso(tcommand comando, int *entrada, int *salida, int error) {
     pid_t pid = fork();
-    if(pid == 0){
+    if (pid == 0) {
+        if (entrada != NULL) {
+            close(entrada[1]);
+            dup2(entrada[0], STDIN_FILENO);
+        }
+        if(salida != NULL){
+            close(salida[0]);
+            dup2(salida[1], STDOUT_FILENO);
+        }
+        dup2(error, STDERR_FILENO);
 
         execvp(comando.filename, comando.argv);
+
         fprintf(stderr, "Se ha producido un error ejecutando un mandato\n");
-        exit(-1);
-    }
-    else{
-        //TODO gestión de errores
-        if(plano ==0){      //Primer plano
-            int status;
-            wait(&status);
-        }
-        else{
-            Proceso *proceso = (Proceso *)malloc(sizeof(Proceso *));
-            proceso->pid = pid;
-            printf("Segundo plano\n");
-            return proceso;
-        }
-
-
+        exit(1);
+    } else {
+        int status;
+        waitpid(pid, &status, 0);
     }
 }
