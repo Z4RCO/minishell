@@ -21,13 +21,16 @@ Proceso *ejecutarProceso(tcommand comando, int *entrada, int *salida, int error)
     pid_t pid = fork();
     if (pid == 0) {
         if (entrada != NULL) {
-            close(entrada[1]);
             dup2(entrada[0], STDIN_FILENO);
+            close(entrada[0]);
+            close(entrada[1]);
         }
-        if(salida != NULL){
-            close(salida[0]);
+        if (salida != NULL) {
             dup2(salida[1], STDOUT_FILENO);
+            close(salida[0]);
+            close(salida[1]);
         }
+
         dup2(error, STDERR_FILENO);
 
         execvp(comando.filename, comando.argv);

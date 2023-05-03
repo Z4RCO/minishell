@@ -16,8 +16,8 @@ int main(void) {
     signal(SIGINT, signalHandler);
     signal(SIGQUIT, signalHandler);
 
-    int entradaFd = dup(STDIN_FILENO);
-    int salidaFd = dup(STDOUT_FILENO);
+    int entradaFD = dup(STDIN_FILENO);
+    int salidaFD = dup(STDOUT_FILENO);
     int errorFD = dup(STDERR_FILENO);
     char buf[1024];
     tline *line = NULL;
@@ -80,36 +80,37 @@ int main(void) {
             getcwd(cwd, sizeof(cwd));
             printf("msh %s> ", cwd);
             continue;
-        }
-        else{
-            int pipes[line->ncommands - 1][2];
-            for (int i = 0; i < line->ncommands - 1; i++) {
+        } else {
+            int pipes[line->ncommands][2];
+            for (int i = 0; i < line->ncommands; i++) {
                 pipe(pipes[i]);
             }
 
 
-            if (line->commands[0].filename != NULL) {
-                ejecutarProceso(line->commands[0], NULL, pipes[0], 2);
-            } else {
-                ejecutarComando(line->commands[0]);
-            }
-
-            for (int i = 1; i < line->ncommands - 1; i++) {
-                if (line->commands[i].filename != NULL) {
-                    ejecutarProceso(line->commands[i], pipes[i - 1], pipes[i], 2);
+            for (int i = 0; i < line->ncommands; i++) {
+                if (i == 0) {
+                    if (line->commands[i].filename != NULL) {
+                        ejecutarProceso(line->commands[i], NULL, pipes[i], 2);
+                    } else {
+                        ejecutarComando(line->commands[i]);
+                    }
+                } else if (i == line->ncommands - 1) {
+                    if (line->commands[i].filename != NULL) {
+                        ejecutarProceso(line->commands[i], pipes[i - 1], NULL, 2);
+                    } else {
+                        ejecutarComando(line->commands[i]);
+                    }
                 } else {
-                    ejecutarComando(line->commands[i]);
+                    if (line->commands[i].filename != NULL) {
+                        ejecutarProceso(line->commands[i], pipes[i - 1], pipes[i], 2);
+                    } else {
+                        ejecutarComando(line->commands[i]);
+                    }
                 }
-
-            }
-            if (line->commands[line->ncommands - 1].filename != NULL) {
-                ejecutarProceso(line->commands[line->ncommands - 1], pipes[line->ncommands - 2], NULL,
-                                2);
-            } else {
-                ejecutarComando(line->commands[line->ncommands - 1]);
             }
 
-            for (int i = 0; i < line->ncommands - 1; i++) {
+
+            for (int i = 0; i < line->ncommands; i++) {
                 for (int j = 0; i < 2; i++) {
                     close(pipes[i][j]);
                 }
@@ -117,15 +118,15 @@ int main(void) {
         }
 
 
-
-
-
         fflush(stderr);
         fflush(stdout);
 
+        dup2(entradaFD, STDIN_FILENO);
+        dup2(salidaFD, STDOUT_FILENO);
+        dup2(errorFD, STDERR_FILENO);
 
         getcwd(cwd, sizeof(cwd));
-        printf("msh %s> ", cwd);
+        fprintf(stdout, "msh %s> ", cwd);
     }
 
     return 0;
