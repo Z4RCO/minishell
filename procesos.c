@@ -7,6 +7,8 @@ Gestor *nuevoGestor() {
     Gestor *gestor = (Gestor *) malloc(sizeof(Gestor));
     gestor->numProcesos = 0;
     gestor->proceso = (Proceso *) malloc(sizeof(Proceso *));
+    gestor->proceso->gpid = -1;
+    gestor->proceso->pid = -1;
     gestor->procesosSegundoPlano = nuevaLista();
     return gestor;
 }
@@ -17,9 +19,16 @@ void borrarGestor(Gestor *gestor) {
     free(gestor);
 }
 
-Proceso *ejecutarProceso(tcommand comando, int *entrada, int *salida, int error) {
+Proceso *ejecutarProceso(tcommand comando, int *entrada, int *salida, int* error, pid_t gpid) {
     pid_t pid = fork();
+    if(pid < 0){
+        perror("Se ha producido un error haciendo el fork.\n");
+        exit(-1);
+    }
     if (pid == 0) {
+        if(gpid != -1){
+            setgid(gpid);
+        }
         if (entrada != NULL) {
             dup2(entrada[0], STDIN_FILENO);
             close(entrada[0]);
@@ -30,15 +39,27 @@ Proceso *ejecutarProceso(tcommand comando, int *entrada, int *salida, int error)
             close(salida[0]);
             close(salida[1]);
         }
+        if (error != NULL) {
+            dup2(error[1], STDERR_FILENO);
+            close(error[0]);
+            close(error[1]);
+        }
 
-        dup2(error, STDERR_FILENO);
 
         execvp(comando.filename, comando.argv);
 
-        fprintf(stderr, "Se ha producido un error ejecutando un mandato\n");
+        perror("Se ha producido un error ejecutando un mandato\n");
         exit(1);
     } else {
         int status;
         waitpid(pid, &status, 0);
+        Proceso* p = (Proceso*)malloc(sizeof(Proceso*));
+        p->pid = pid;
+        if(gpid != -1){
+            p->gpid = gpid;
+        }
+        else p->gpid = pid;
+
+        return p;
     }
 }
