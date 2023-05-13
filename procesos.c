@@ -6,7 +6,7 @@
 Gestor *nuevoGestor() {
     Gestor *gestor = (Gestor *) malloc(sizeof(Gestor));
     gestor->numProcesos = 0;
-    gestor->proceso = (Proceso *) malloc(sizeof(Proceso *));
+    gestor->proceso = (Proceso *) malloc(sizeof(Proceso));
     gestor->proceso->gpid = -1;
     gestor->proceso->pid = -1;
     gestor->procesosSegundoPlano = nuevaLista();
@@ -19,7 +19,7 @@ void borrarGestor(Gestor *gestor) {
     free(gestor);
 }
 
-Proceso *ejecutarProceso(tcommand comando, int *entrada, int *salida, int* error, pid_t gpid) {
+Proceso *ejecutarProceso(tcommand comando, int *entrada, int *salida, int* error, pid_t gpid, Gestor* gestor, int plano) {
     pid_t pid = fork();
     if(pid < 0){
         perror("Se ha producido un error haciendo el fork.\n");
@@ -28,6 +28,9 @@ Proceso *ejecutarProceso(tcommand comando, int *entrada, int *salida, int* error
     if (pid == 0) {
         if(gpid != -1){
             setgid(gpid);
+        }
+        else{
+            setgid(getpid());
         }
         if (entrada != NULL) {
             dup2(entrada[0], STDIN_FILENO);
@@ -45,21 +48,28 @@ Proceso *ejecutarProceso(tcommand comando, int *entrada, int *salida, int* error
             close(error[1]);
         }
 
-
         execvp(comando.filename, comando.argv);
 
         perror("Se ha producido un error ejecutando un mandato\n");
         exit(1);
     } else {
-        int status;
-        waitpid(pid, &status, 0);
-        Proceso* p = (Proceso*)malloc(sizeof(Proceso*));
+        Proceso* p = (Proceso*)malloc(sizeof(Proceso));
         p->pid = pid;
+        p->argv = comando.argv;
+        p->argc = comando.argc;
         if(gpid != -1){
             p->gpid = gpid;
         }
         else p->gpid = pid;
 
-        return p;
+        if(plano == 0){
+            gestor->proceso = p;
+            waitpid(pid, NULL, 0);
+            free(gestor->proceso);
+            gestor->proceso = NULL;
+        }
+        else{
+            insertar(gestor->procesosSegundoPlano,gestor->procesosSegundoPlano->n, p);
+        }
     }
 }

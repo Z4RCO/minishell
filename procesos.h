@@ -9,6 +9,8 @@
 #include "parser.h"
 
 typedef struct{
+    int argc;
+    char** argv;
     pid_t gpid;
     pid_t pid;
 }Proceso;
@@ -26,7 +28,7 @@ Gestor* nuevoGestor();
 
 void borrarGestor(Gestor * gestor);
 
-Proceso * ejecutarProceso(tcommand comando, int* entrada, int* salida, int* error, pid_t gpid);
+Proceso * ejecutarProceso(tcommand comando, int* entrada, int* salida, int* error, pid_t gpid, Gestor* gestor, int plano);
 
 
 

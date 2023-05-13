@@ -6,7 +6,7 @@
 #include "parser.h"
 #include "procesos.h"
 
-int ejecutarComando(tcommand comando);
+int ejecutarComando(tcommand comando, Gestor* gestor);
 
 /**
  * Función para cambiar de directorio
@@ -18,6 +18,6 @@ int cd(char* dir);
 //TODO ARGUMENTOS
 void jobs(Gestor *gestor);
 
-void fg();
+int fg(pid_t pid, Gestor* gestor);
 
 #endif //MINISHELL_COMANDOS_H

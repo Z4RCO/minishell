@@ -9,11 +9,13 @@
 #include "parser.h"
 #include "procesos.h"
 
-void signalHandler(int signal);
+void signalHandler(int sig);
 
 Gestor *gestorProcesos;
 
 int main(void) {
+
+
     signal(SIGINT, signalHandler);
     signal(SIGQUIT, signalHandler);
 
@@ -28,6 +30,7 @@ int main(void) {
     getcwd(cwd, sizeof(cwd));
     printf("msh %s> ", cwd);
     gestorProcesos = nuevoGestor();
+    Gestor * aux = gestorProcesos;
     while (fgets(buf, 1024, stdin)) {
         line = tokenize(buf);
         if (line == NULL || line->ncommands <= 0) {
@@ -50,20 +53,19 @@ int main(void) {
                         "Ha ocurrido un error al abrir el fichero de entrada. Revisa que el nombre sea correccto\n");
                 exit(-1);
             }
-            dup2(fds, redireccion[0][1]);
+            dup2(fds, redireccion[0][0]);
             close(fds);
         }
         if (line->redirect_error != NULL) {
+            int fds;
             redireccion[2] = (int*)malloc(2 * sizeof(int));
             pipe(redireccion[2]);
-            int fds;
             fds = open(line->redirect_error, O_WRONLY | O_CREAT | O_TRUNC, S_IWUSR | S_IXUSR);
             if (fds < 0) {
-                fprintf(stderr,
-                        "Ha ocurrido un error al abrir el fichero de error. Revisa que el nombre sea correccto\n");
+                perror("Ha ocurrido un error al abrir el fichero de error. Revisa que el nombre sea correccto\n");
                 exit(-1);
             }
-            dup2(fds, redireccion[2][0]);
+            dup2(fds, redireccion[2][1]);
             close(fds);
         }
         if (line->redirect_output != NULL) {
@@ -72,18 +74,17 @@ int main(void) {
             pipe(redireccion[1]);
             fds = open(line->redirect_output, O_WRONLY | O_CREAT | O_TRUNC, S_IWUSR | S_IXUSR);
             if (fds < 0) {
-                fprintf(stderr,
-                        "Ha ocurrido un error al abrir el fichero de error. Revisa que el nombre sea correccto\n");
+                perror("Ha ocurrido un error al abrir el fichero de salida. Revisa que el nombre sea correccto\n");
                 exit(-1);
             }
-            dup2(fds, redireccion[1][0]);
+            dup2(fds, redireccion[1][1]);
             close(fds);
         }
         if (line->ncommands == 1) {
             if (line->commands[0].filename != NULL) {
-                ejecutarProceso(line->commands[0], redireccion[0], redireccion[1], redireccion[2], -1);
+                ejecutarProceso(line->commands[0], redireccion[0], redireccion[1], redireccion[2], -1, gestorProcesos, line->background);
             } else {
-                ejecutarComando(line->commands[0]);
+                ejecutarComando(line->commands[0], gestorProcesos);
             }
 
             for (int i = 0; i < 3; ++i) {
@@ -112,23 +113,23 @@ int main(void) {
             for (int i = 0; i < line->ncommands; i++) {
                 if (i == 0) {
                     if (line->commands[i].filename != NULL) {
-                        p = ejecutarProceso(line->commands[i], redireccion[0], pipes[i], redireccion[2], -1);
+                        p = ejecutarProceso(line->commands[i], redireccion[0], pipes[i], redireccion[2], -1, gestorProcesos, line->background);
                     } else {
-                        ejecutarComando(line->commands[i]);
+                        ejecutarComando(line->commands[i], gestorProcesos);
                     }
                 } else if (i == line->ncommands - 1) {
                     close(pipes[i - 1][1]);
                     if (line->commands[i].filename != NULL) {
-                        ejecutarProceso(line->commands[i], pipes[i - 1], redireccion[1], redireccion[2], p->gpid);
+                        ejecutarProceso(line->commands[i], pipes[i - 1], redireccion[1], redireccion[2], p->gpid, gestorProcesos, line->background);
                     } else {
-                        ejecutarComando(line->commands[i]);
+                        ejecutarComando(line->commands[i], gestorProcesos);
                     }
                 } else {
                     close(pipes[i - 1][1]);
                     if (line->commands[i].filename != NULL) {
-                        ejecutarProceso(line->commands[i], pipes[i - 1], pipes[i], redireccion[2], p->gpid);
+                        ejecutarProceso(line->commands[i], pipes[i - 1], pipes[i], redireccion[2], p->gpid, gestorProcesos, line->background);
                     } else {
-                        ejecutarComando(line->commands[i]);
+                        ejecutarComando(line->commands[i], gestorProcesos);
                     }
                 }
 
@@ -159,15 +160,15 @@ int main(void) {
     return 0;
 }
 
-void signalHandler(int signal) {
+void signalHandler(int sig) {
     if(gestorProcesos->proceso->gpid != -1){
-        killpg(gestorProcesos->proceso->gpid, signal);
+        killpg(gestorProcesos->proceso->gpid, sig);
     }
 }
 
+
 // echo hola > fichero.txt
 
-//TODO acabar redirecciones
 //TODO Hacer procesos en segundo plano
 //TODO Acabar señales
 //TODO Hacer gestión de errores
