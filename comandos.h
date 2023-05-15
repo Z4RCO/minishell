@@ -27,6 +27,11 @@ int cd(char* dir);
 void jobs(Gestor *gestor);
 
 
+/**
+ * Comprueba si un proceso está vivo o si ya ha muerto
+ * @param pid pid del proceso
+ * @return 1 si está vivo, 0 si ha muerto
+ */
 int estadoProceso(pid_t pid);
 
 

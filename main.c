@@ -170,7 +170,3 @@ void signalHandler(int sig) {
         killpg(gestorProcesos->proceso->gpid, sig);
     }
 }
-
-
-//TODO Hacer gestión de errores
-//TODO Hacer jobs y fg
