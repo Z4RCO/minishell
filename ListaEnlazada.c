@@ -25,7 +25,7 @@ ListaEnlazada* nuevaLista() {
 
 
 void insertar(ListaEnlazada* lista, int posicion, void * nuevoValor) {
-	Nodo *nuevoNodo = (Nodo*)malloc(sizeof(Nodo));
+    Nodo *nuevoNodo = (Nodo*)malloc(sizeof(Nodo));
 	nuevoNodo->elemento = nuevoValor;
 
 
@@ -39,39 +39,34 @@ void insertar(ListaEnlazada* lista, int posicion, void * nuevoValor) {
 		if (posicion == 0) {
 			nuevoNodo->siguienteNodo = lista->punteroPrimerNodo;
 			lista->punteroPrimerNodo = nuevoNodo;
-            printf("Se inserta un elemento\n");
+
 		}
 
 
 		else if (posicion == lista->n) {
+
 			nuevoNodo->siguienteNodo = NULL;
 			getNodo(lista, lista->n - 1)->siguienteNodo = nuevoNodo;
 		}
 
 
 		else {
-			// Obtenemos los nodos anterior y siguiente al que queremos insertar
-			Nodo *anterior = getNodo(lista, posicion - 1); // Nodo que estar� antes del que queremos insertar
-			Nodo *siguiente = anterior->siguienteNodo; // Nodo que estar� despu�s del que queremos insertar
+			Nodo *anterior = getNodo(lista, posicion - 1);
+			Nodo *siguiente = anterior->siguienteNodo;
 
-			// Hacemos que cada uno apunte al lugar adecuado
 			anterior->siguienteNodo = nuevoNodo;
 			nuevoNodo->siguienteNodo = siguiente;
 		}
 
-	} // Fin else
-
-	// Incrementamos el numero de elementos
+	}
 	lista->n++;
 }
 
 
 void eliminar(ListaEnlazada* lista, int posicion) {
 	Nodo *nodoAEliminar = NULL;
-    printf("Se inserta un elemento\n");
 
 
-    //
 	if (posicion == 0) {
 		nodoAEliminar = lista->punteroPrimerNodo;
 		Nodo *nodoSiguiente = nodoAEliminar->siguienteNodo;

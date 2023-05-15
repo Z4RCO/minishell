@@ -30,7 +30,6 @@ int main(void) {
     getcwd(cwd, sizeof(cwd));
     printf("msh %s> ", cwd);
     gestorProcesos = nuevoGestor();
-    Gestor * aux = gestorProcesos;
     while (fgets(buf, 1024, stdin)) {
         line = tokenize(buf);
         if (line == NULL || line->ncommands <= 0) {
@@ -41,6 +40,12 @@ int main(void) {
             getcwd(cwd, sizeof(cwd));
             printf("msh %s> ", cwd);
             continue;
+        }
+        char* linea =(char*) malloc(1024*sizeof(char));
+        int i = 0;
+        while(buf[i] != '\n'){
+            linea[i] = buf[i];
+            i++;
         }
 
         if (line->redirect_input != NULL) {
@@ -82,7 +87,7 @@ int main(void) {
         }
         if (line->ncommands == 1) {
             if (line->commands[0].filename != NULL) {
-                ejecutarProceso(line->commands[0], redireccion[0], redireccion[1], redireccion[2], -1, gestorProcesos, line->background);
+                ejecutarProceso(line->commands[0], redireccion[0], redireccion[1], redireccion[2], -1, gestorProcesos, line->background, linea);
             } else {
                 ejecutarComando(line->commands[0], gestorProcesos);
             }
@@ -113,21 +118,21 @@ int main(void) {
             for (int i = 0; i < line->ncommands; i++) {
                 if (i == 0) {
                     if (line->commands[i].filename != NULL) {
-                        p = ejecutarProceso(line->commands[i], redireccion[0], pipes[i], redireccion[2], -1, gestorProcesos, line->background);
+                        p = ejecutarProceso(line->commands[i], redireccion[0], pipes[i], redireccion[2], -1, gestorProcesos, line->background, linea);
                     } else {
                         ejecutarComando(line->commands[i], gestorProcesos);
                     }
                 } else if (i == line->ncommands - 1) {
                     close(pipes[i - 1][1]);
                     if (line->commands[i].filename != NULL) {
-                        ejecutarProceso(line->commands[i], pipes[i - 1], redireccion[1], redireccion[2], p->gpid, gestorProcesos, line->background);
+                        ejecutarProceso(line->commands[i], pipes[i - 1], redireccion[1], redireccion[2], p->gpid, gestorProcesos, line->background, linea);
                     } else {
                         ejecutarComando(line->commands[i], gestorProcesos);
                     }
                 } else {
                     close(pipes[i - 1][1]);
                     if (line->commands[i].filename != NULL) {
-                        ejecutarProceso(line->commands[i], pipes[i - 1], pipes[i], redireccion[2], p->gpid, gestorProcesos, line->background);
+                        ejecutarProceso(line->commands[i], pipes[i - 1], pipes[i], redireccion[2], p->gpid, gestorProcesos, line->background, linea);
                     } else {
                         ejecutarComando(line->commands[i], gestorProcesos);
                     }
@@ -161,15 +166,11 @@ int main(void) {
 }
 
 void signalHandler(int sig) {
-    if(gestorProcesos->proceso->gpid != -1){
+    if(gestorProcesos->proceso != NULL){
         killpg(gestorProcesos->proceso->gpid, sig);
     }
 }
 
 
-// echo hola > fichero.txt
-
-//TODO Hacer procesos en segundo plano
-//TODO Acabar señales
 //TODO Hacer gestión de errores
 //TODO Hacer jobs y fg

@@ -8,4 +8,4 @@ find_library(LIBPARSER parser ./)
 target_link_libraries(minishell ${LIBPARSER})
 
 
-set(CMAKE_C_FLAGS "-Wall -Wextra -static")
+set(CMAKE_C_FLAGS "-Wall -Wextra -static ")

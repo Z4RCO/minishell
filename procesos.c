@@ -6,9 +6,6 @@
 Gestor *nuevoGestor() {
     Gestor *gestor = (Gestor *) malloc(sizeof(Gestor));
     gestor->numProcesos = 0;
-    gestor->proceso = (Proceso *) malloc(sizeof(Proceso));
-    gestor->proceso->gpid = -1;
-    gestor->proceso->pid = -1;
     gestor->procesosSegundoPlano = nuevaLista();
     return gestor;
 }
@@ -19,7 +16,7 @@ void borrarGestor(Gestor *gestor) {
     free(gestor);
 }
 
-Proceso *ejecutarProceso(tcommand comando, int *entrada, int *salida, int* error, pid_t gpid, Gestor* gestor, int plano) {
+Proceso *ejecutarProceso(tcommand comando, int *entrada, int *salida, int* error, pid_t gpid, Gestor* gestor, int plano, char* linea) {
     pid_t pid = fork();
     if(pid < 0){
         perror("Se ha producido un error haciendo el fork.\n");
@@ -55,14 +52,14 @@ Proceso *ejecutarProceso(tcommand comando, int *entrada, int *salida, int* error
     } else {
         Proceso* p = (Proceso*)malloc(sizeof(Proceso));
         p->pid = pid;
-        p->argv = comando.argv;
-        p->argc = comando.argc;
+        p->linea = linea;
         if(gpid != -1){
             p->gpid = gpid;
         }
         else p->gpid = pid;
 
         if(plano == 0){
+            free(gestor->proceso);
             gestor->proceso = p;
             waitpid(pid, NULL, 0);
             free(gestor->proceso);
