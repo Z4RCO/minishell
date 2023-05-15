@@ -4,6 +4,7 @@
 #include <string.h>
 #include <fcntl.h>
 #include <signal.h>
+#include <sys/wait.h>
 
 #include "comandos.h"
 #include "parser.h"
@@ -30,6 +31,7 @@ int main(void) {
     getcwd(cwd, sizeof(cwd));
     printf("msh %s> ", cwd);
     gestorProcesos = nuevoGestor();
+    Gestor* aux = gestorProcesos;
     while (fgets(buf, 1024, stdin)) {
         line = tokenize(buf);
         if (line == NULL || line->ncommands <= 0) {
@@ -42,10 +44,10 @@ int main(void) {
             continue;
         }
         char *linea = (char *) malloc(1024 * sizeof(char));
-        int i = 0;
-        while (buf[i] != '\n') {
-            linea[i] = buf[i];
-            i++;
+        int j = 0;
+        while (buf[j] != '\n') {
+            linea[j] = buf[j];
+            j++;
         }
 
         if (line->redirect_input != NULL) {
@@ -54,9 +56,10 @@ int main(void) {
             int fds;
             fds = open(line->redirect_input, O_RDONLY);
             if (fds < 0) {
-                fprintf(stderr,
-                        "Ha ocurrido un error al abrir el fichero de entrada. Revisa que el nombre sea correccto\n");
-                exit(-1);
+                fprintf(stderr,"%s. Error. El fichero no existe.\n", line->redirect_input);
+                getcwd(cwd, sizeof(cwd));
+                printf("msh %s> ", cwd);
+                continue;
             }
             dup2(fds, redireccion[0][0]);
             close(fds);
@@ -67,8 +70,10 @@ int main(void) {
             pipe(redireccion[2]);
             fds = open(line->redirect_error, O_WRONLY | O_CREAT | O_TRUNC, S_IWUSR | S_IXUSR);
             if (fds < 0) {
-                perror("Ha ocurrido un error al abrir el fichero de error. Revisa que el nombre sea correccto\n");
-                exit(-1);
+                fprintf(stderr,"%s. Error. El fichero no existe.\n", line->redirect_input);
+                getcwd(cwd, sizeof(cwd));
+                printf("msh %s> ", cwd);
+                continue;
             }
             dup2(fds, redireccion[2][1]);
             close(fds);
@@ -79,16 +84,30 @@ int main(void) {
             pipe(redireccion[1]);
             fds = open(line->redirect_output, O_WRONLY | O_CREAT | O_TRUNC, S_IWUSR | S_IXUSR);
             if (fds < 0) {
-                perror("Ha ocurrido un error al abrir el fichero de salida. Revisa que el nombre sea correccto\n");
-                exit(-1);
+                fprintf(stderr,"%s. Error. El fichero no existe.\n", line->redirect_input);
+                getcwd(cwd, sizeof(cwd));
+                printf("msh %s> ", cwd);
+                continue;
             }
             dup2(fds, redireccion[1][1]);
             close(fds);
         }
         if (line->ncommands == 1) {
+            Proceso *p = (Proceso *) malloc(sizeof(Proceso));
             if (line->commands[0].filename != NULL) {
-                ejecutarProceso(line->commands[0], redireccion[0], redireccion[1], redireccion[2], -1, gestorProcesos,
-                                line->background, linea);
+                pid_t pid = ejecutarProceso(line->commands[0], redireccion[0], redireccion[1], redireccion[2], -1);
+                p->pid = pid;
+                p->gpid = pid;
+                p->linea = linea;
+                if (!line->background) {
+                    p->pid = pid;
+                    gestorProcesos->proceso = p;
+                    waitpid(pid, NULL, 0);
+                    free(gestorProcesos->proceso);
+                } else {
+                    insertar(gestorProcesos->procesosSegundoPlano, gestorProcesos->procesosSegundoPlano->n, p);
+                }
+
             } else {
                 ejecutarComando(line->commands[0], gestorProcesos);
             }
@@ -109,40 +128,58 @@ int main(void) {
             printf("msh %s> ", cwd);
             continue;
         } else {
+            int error = 0;
+            for (int i = 0; i < line->ncommands; i++) {
+                if (line->commands[i].filename == NULL) {
+                    error = 1;
+                }
+            }
+            if (error) {
+                fprintf(stderr, "Error. Alguno de los mandatos introducidos no es correcto.\n");
+                fflush(stderr);
+                fflush(stdout);
+
+                getcwd(cwd, sizeof(cwd));
+                printf("msh %s> ", cwd);
+                continue;
+            }
+
             int pipes[line->ncommands][2];
-            Proceso *p;
             for (int i = 0; i < line->ncommands; i++) {
                 pipe(pipes[i]);
             }
 
-
+            pid_t pid;
+            Proceso *p =(Proceso*) malloc(line->ncommands * sizeof(Proceso));
             for (int i = 0; i < line->ncommands; i++) {
                 if (i == 0) {
-                    if (line->commands[i].filename != NULL) {
-                        p = ejecutarProceso(line->commands[i], redireccion[0], pipes[i], redireccion[2], -1,
-                                            gestorProcesos, line->background, linea);
-                    } else {
-                        ejecutarComando(line->commands[i], gestorProcesos);
-                    }
+                    pid = ejecutarProceso(line->commands[i], redireccion[0], pipes[i], redireccion[2], -1);
+                    p[i].pid = pid;
+                    p[i].gpid = pid;
+                    p[i].linea = linea;
                 } else if (i == line->ncommands - 1) {
                     close(pipes[i - 1][1]);
-                    if (line->commands[i].filename != NULL) {
-                        ejecutarProceso(line->commands[i], pipes[i - 1], redireccion[1], redireccion[2], p->gpid,
-                                        gestorProcesos, line->background, linea);
+                    pid = ejecutarProceso(line->commands[i], pipes[i - 1], redireccion[1], redireccion[2], p->gpid);
+                    if (!line->background) {
+                        gestorProcesos->proceso = p;
+                        p[i].pid = pid;
                     } else {
-                        ejecutarComando(line->commands[i], gestorProcesos);
+                        p[i].pid = pid;
+                        insertar(gestorProcesos->procesosSegundoPlano, gestorProcesos->procesosSegundoPlano->n, p);
                     }
+
                 } else {
                     close(pipes[i - 1][1]);
-                    if (line->commands[i].filename != NULL) {
-                        ejecutarProceso(line->commands[i], pipes[i - 1], pipes[i], redireccion[2], p->gpid,
-                                        gestorProcesos, line->background, linea);
-                    } else {
-                        ejecutarComando(line->commands[i], gestorProcesos);
-                    }
+                    p[0].pid = pid;
+                    ejecutarProceso(line->commands[i], pipes[i - 1], pipes[i], redireccion[2], p->gpid);
                 }
-
             }
+            if(!line->background){
+                for(int i = 0; i < line->ncommands; i++){
+                    waitpid(gestorProcesos->proceso[i].pid, NULL, 0);
+                }
+            }
+
         }
 
         for (int i = 0; i < 3; ++i) {
@@ -175,6 +212,6 @@ int main(void) {
 
 void signalHandler(int sig) {
     if (gestorProcesos->proceso != NULL) {
-        killpg(gestorProcesos->proceso->gpid, sig);
+        killpg(gestorProcesos->proceso[0].gpid, sig);
     }
 }

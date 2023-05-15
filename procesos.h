@@ -44,12 +44,9 @@ void borrarGestor(Gestor * gestor);
  * @param salida pipe para la redirección de salida. Si es NULL no hay redirección
  * @param error pipe para la redirección de error. Si es NULL no hay redirección
  * @param gpid id del grupo
- * @param gestor puntero al gestor de procesos para añadir el proceso a la lista
- * @param plano Establece si el comando se ejecuta en primer o segundo plano. 0 para primer plano, 0 para segundo
- * @param linea String que contiene el nombre y los argumentos del comando
- * @return Puntero con información del proceso que se está ejecutando
+ * @return pid del proceso hijo
  */
-Proceso * ejecutarProceso(tcommand comando, int* entrada, int* salida, int* error, pid_t gpid, Gestor* gestor, int plano, char* linea);
+pid_t ejecutarProceso(tcommand comando, int* entrada, int* salida, int* error, pid_t gpid);
 
 
 

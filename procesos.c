@@ -16,18 +16,18 @@ void borrarGestor(Gestor *gestor) {
     free(gestor);
 }
 
-Proceso *ejecutarProceso(tcommand comando, int *entrada, int *salida, int* error, pid_t gpid, Gestor* gestor, int plano, char* linea) {
+pid_t ejecutarProceso(tcommand comando, int *entrada, int *salida, int* error, pid_t gpid) {
     pid_t pid = fork();
     if(pid < 0){
-        perror("Se ha producido un error haciendo el fork.\n");
+        fprintf(stderr,"Se ha producido un error haciendo el fork.\n");
         exit(-1);
     }
     if (pid == 0) {
         if(gpid != -1){
-            setgid(gpid);
+            setpgid(0, gpid);
         }
         else{
-            setgid(getpid());
+           setpgid(0, getpid());
         }
         if (entrada != NULL) {
             dup2(entrada[0], STDIN_FILENO);
@@ -47,26 +47,9 @@ Proceso *ejecutarProceso(tcommand comando, int *entrada, int *salida, int* error
 
         execvp(comando.filename, comando.argv);
 
-        perror("Se ha producido un error ejecutando un mandato\n");
+        fprintf(stderr,"Se ha producido un error ejecutando un mandato\n");
         exit(1);
     } else {
-        Proceso* p = (Proceso*)malloc(sizeof(Proceso));
-        p->pid = pid;
-        p->linea = linea;
-        if(gpid != -1){
-            p->gpid = gpid;
-        }
-        else p->gpid = pid;
-
-        if(plano == 0){
-            free(gestor->proceso);
-            gestor->proceso = p;
-            waitpid(pid, NULL, 0);
-            free(gestor->proceso);
-            gestor->proceso = NULL;
-        }
-        else{
-            insertar(gestor->procesosSegundoPlano,gestor->procesosSegundoPlano->n, p);
-        }
+        return pid;
     }
 }
