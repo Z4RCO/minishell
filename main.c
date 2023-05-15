@@ -19,7 +19,7 @@ int main(void) {
     signal(SIGINT, signalHandler);
     signal(SIGQUIT, signalHandler);
 
-    int** redireccion = (int**)malloc(3 * sizeof(int*));
+    int **redireccion = (int **) malloc(3 * sizeof(int *));
     for (int i = 0; i < 3; ++i) {
         redireccion[i] = NULL;
     }
@@ -41,15 +41,15 @@ int main(void) {
             printf("msh %s> ", cwd);
             continue;
         }
-        char* linea =(char*) malloc(1024*sizeof(char));
+        char *linea = (char *) malloc(1024 * sizeof(char));
         int i = 0;
-        while(buf[i] != '\n'){
+        while (buf[i] != '\n') {
             linea[i] = buf[i];
             i++;
         }
 
         if (line->redirect_input != NULL) {
-            redireccion[0] = (int*)malloc(2 * sizeof(int));
+            redireccion[0] = (int *) malloc(2 * sizeof(int));
             pipe(redireccion[0]);
             int fds;
             fds = open(line->redirect_input, O_RDONLY);
@@ -63,7 +63,7 @@ int main(void) {
         }
         if (line->redirect_error != NULL) {
             int fds;
-            redireccion[2] = (int*)malloc(2 * sizeof(int));
+            redireccion[2] = (int *) malloc(2 * sizeof(int));
             pipe(redireccion[2]);
             fds = open(line->redirect_error, O_WRONLY | O_CREAT | O_TRUNC, S_IWUSR | S_IXUSR);
             if (fds < 0) {
@@ -75,7 +75,7 @@ int main(void) {
         }
         if (line->redirect_output != NULL) {
             int fds;
-            redireccion[1] = (int*)malloc(2 * sizeof(int));
+            redireccion[1] = (int *) malloc(2 * sizeof(int));
             pipe(redireccion[1]);
             fds = open(line->redirect_output, O_WRONLY | O_CREAT | O_TRUNC, S_IWUSR | S_IXUSR);
             if (fds < 0) {
@@ -87,13 +87,14 @@ int main(void) {
         }
         if (line->ncommands == 1) {
             if (line->commands[0].filename != NULL) {
-                ejecutarProceso(line->commands[0], redireccion[0], redireccion[1], redireccion[2], -1, gestorProcesos, line->background, linea);
+                ejecutarProceso(line->commands[0], redireccion[0], redireccion[1], redireccion[2], -1, gestorProcesos,
+                                line->background, linea);
             } else {
                 ejecutarComando(line->commands[0], gestorProcesos);
             }
 
             for (int i = 0; i < 3; ++i) {
-                if(redireccion[i] != NULL){
+                if (redireccion[i] != NULL) {
                     close(redireccion[i][1]);
                     close(redireccion[i][0]);
                     free(redireccion[i]);
@@ -109,7 +110,7 @@ int main(void) {
             continue;
         } else {
             int pipes[line->ncommands][2];
-            Proceso * p;
+            Proceso *p;
             for (int i = 0; i < line->ncommands; i++) {
                 pipe(pipes[i]);
             }
@@ -118,21 +119,24 @@ int main(void) {
             for (int i = 0; i < line->ncommands; i++) {
                 if (i == 0) {
                     if (line->commands[i].filename != NULL) {
-                        p = ejecutarProceso(line->commands[i], redireccion[0], pipes[i], redireccion[2], -1, gestorProcesos, line->background, linea);
+                        p = ejecutarProceso(line->commands[i], redireccion[0], pipes[i], redireccion[2], -1,
+                                            gestorProcesos, line->background, linea);
                     } else {
                         ejecutarComando(line->commands[i], gestorProcesos);
                     }
                 } else if (i == line->ncommands - 1) {
                     close(pipes[i - 1][1]);
                     if (line->commands[i].filename != NULL) {
-                        ejecutarProceso(line->commands[i], pipes[i - 1], redireccion[1], redireccion[2], p->gpid, gestorProcesos, line->background, linea);
+                        ejecutarProceso(line->commands[i], pipes[i - 1], redireccion[1], redireccion[2], p->gpid,
+                                        gestorProcesos, line->background, linea);
                     } else {
                         ejecutarComando(line->commands[i], gestorProcesos);
                     }
                 } else {
                     close(pipes[i - 1][1]);
                     if (line->commands[i].filename != NULL) {
-                        ejecutarProceso(line->commands[i], pipes[i - 1], pipes[i], redireccion[2], p->gpid, gestorProcesos, line->background, linea);
+                        ejecutarProceso(line->commands[i], pipes[i - 1], pipes[i], redireccion[2], p->gpid,
+                                        gestorProcesos, line->background, linea);
                     } else {
                         ejecutarComando(line->commands[i], gestorProcesos);
                     }
@@ -142,7 +146,7 @@ int main(void) {
         }
 
         for (int i = 0; i < 3; ++i) {
-            if(redireccion[i] != NULL){
+            if (redireccion[i] != NULL) {
                 close(redireccion[i][1]);
                 close(redireccion[i][0]);
                 free(redireccion[i]);
@@ -154,11 +158,15 @@ int main(void) {
         fflush(stdout);
 
 
-
         getcwd(cwd, sizeof(cwd));
         printf("msh %s> ", cwd);
     }
-
+    Nodo *nodo = gestorProcesos->procesosSegundoPlano->punteroPrimerNodo;
+    while (nodo != NULL) {
+        Proceso *proceso = (Proceso *) nodo->elemento;
+        free(proceso->linea);
+        nodo = nodo->siguienteNodo;
+    }
     borrarGestor(gestorProcesos);
     free(redireccion);
 
@@ -166,7 +174,7 @@ int main(void) {
 }
 
 void signalHandler(int sig) {
-    if(gestorProcesos->proceso != NULL){
+    if (gestorProcesos->proceso != NULL) {
         killpg(gestorProcesos->proceso->gpid, sig);
     }
 }
